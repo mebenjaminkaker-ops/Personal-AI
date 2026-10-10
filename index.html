@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Personal AI Studio</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #000000;
+      --panel-bg: #0d0d0d;
+      --user-msg: #d97706;
+      --ai-msg: #000000;
+      --text: #ffffff;
+      --border: #222222;
+      --neon-glow: 0 0 10px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.2);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* هدر */
+    header {
+      padding: 10px 12px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 10;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex: 1;
+      justify-content: flex-end;
+    }
+    input, select {
+      background: #141414;
+      color: #fff;
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      outline: none;
+    }
+    select {
+      max-width: 150px;
+      flex: 1;
+    }
+    .key-input {
+      width: 90px;
+    }
+
+    /* سیدبار سوابق */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      right: -300px;
+      width: 300px;
+      height: 100%;
+      background: #080808;
+      border-left: 1px solid var(--border);
+      z-index: 100;
+      transition: right 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+    #sidebar.open { right: 0; }
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      font-weight: bold;
+    }
+    .new-chat-btn {
+      width: 100%;
+      padding: 12px;
+      background: #1f1f1f;
+      color: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      font-weight: bold;
+      text-align: center;
+    }
+    #historyList {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .history-item {
+      padding: 10px 12px;
+      background: #121212;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid transparent;
+      position: relative;
+    }
+    .history-item.active {
+      border-color: #d97706;
+    }
+    .history-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-menu-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .chat-dropdown {
+      position: absolute;
+      left: 10px;
+      top: 35px;
+      background: #18181b;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: none;
+      flex-direction: column;
+      z-index: 110;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .chat-dropdown.show { display: flex; }
+    .chat-dropdown button {
+      background: none;
+      border: none;
+      color: #fff;
+      padding: 8px 14px;
+      text-align: right;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .chat-dropdown button:hover { background: #27272a; }
+
+    /* صفحه اصلی و چت‌باکس */
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+    .welcome-screen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 28px;
+      font-weight: 300;
+      color: #555;
+      text-shadow: 0 0 15px rgba(255,255,255,0.1);
+      pointer-events: none;
+      letter-spacing: 1px;
+    }
+    .msg {
+      max-width: 88%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+      color: #ffffff;
+    }
+    .user {
+      align-self: flex-start;
+      background-color: var(--user-msg);
+      border-bottom-right-radius: 2px;
+    }
+    .ai {
+      align-self: flex-end;
+      background-color: var(--ai-msg);
+      border: 1px solid #3b82f6;
+      box-shadow: var(--neon-glow);
+      border-bottom-left-radius: 2px;
+    }
+    .msg pre {
+      direction: ltr;
+      text-align: left;
+      background: #050505;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
+      border: 1px solid #222;
+    }
+    .msg code {
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    /* انیمیشن ۳ نقطه تایپ */
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 4px 8px;
+    }
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      background-color: #3b82f6;
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+
+    /* پیش‌نمایش فایل */
+    .file-preview {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: #0a0a0a;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    /* نوار نوشتن */
+    .input-wrapper {
+      padding: 12px;
+      background: #000000;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .plus-btn {
+      font-size: 26px;
+      color: #fff;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .input-box {
+      flex: 1;
+      background: #000000;
+      border: 1px solid #333333;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      padding: 8px 8px 8px 14px;
+    }
+    .input-box textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 14px;
+      resize: none;
+      height: 28px;
+      max-height: 100px;
+      outline: none;
+      direction: rtl;
+      font-family: inherit;
+    }
+    .input-box textarea::placeholder {
+      color: #ffffff;
+      opacity: 0.8;
+      font-weight: 300;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.6);
+    }
+    /* دکمه ارسال هوشمند */
+    .send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #161616;
+      color: #555555;
+      border: 1px solid #222222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: not-allowed;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .send-btn.active {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border-color: #ffffff !important;
+      cursor: pointer !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- کشوی سوابق -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <span>گفتگوهای اخیر</span>
+      <button class="icon-btn" onclick="toggleSidebar()">✕</button>
+    </div>
+    <div class="new-chat-btn" onclick="startNewChat()">+ گفتگوی جدید</div>
+    <div id="historyList"></div>
+  </div>
+
+  <!-- هدر -->
+  <header>
+    <div class="header-right">
+      <button class="icon-btn" onclick="toggleSidebar()">☰</button>
+      <span style="font-weight: bold; font-size: 13px;">Personal AI</span>
+    </div>
+    <div class="controls">
+      <input type="password" id="apiKey" class="key-input" placeholder="API Key" onchange="fetchModels()">
+      <select id="modelSelect"><option value="">اسکن مدل‌ها...</option></select>
+    </div>
+  </header>
+
+  <!-- کادر پیام‌ها -->
+  <div id="chat-box">
+    <div id="welcomeScreen" class="welcome-screen">خوش آمدید</div>
+  </div>
+
+  <!-- پیش‌نمایش فایل -->
+  <div id="previewArea" class="file-preview" style="display:none;">
+    <span id="fileName">فایل انتخاب شد</span>
+    <button onclick="clearFile()" style="background:none; border:none; color:#ef4444; cursor:pointer;">✕</button>
+  </div>
+
+  <!-- نوار نوشتن -->
+  <div class="input-wrapper">
+    <label class="plus-btn">
+      +
+      <input type="file" id="fileInput" style="display:none" onchange="handleFile(this)">
+    </label>
+    <div class="input-box">
+      <textarea id="userInput" placeholder="پرسیدن از AI" rows="1" onkeyup="handleInputText()" onkeydown="checkEnter(event)"></textarea>
+      <button id="sendBtn" class="send-btn" onclick="sendMsg()">↑</button>
+    </div>
+  </div>
+
+  <script>
+    let activeFile = null;
+    let chats = JSON.parse(localStorage.getItem('ai_chats') || '{}');
+    let currentChatId = null;
+
+    window.onload = () => {
+      const savedKey = localStorage.getItem('gemini_api_key');
+      if (savedKey) {
+        document.getElementById('apiKey').value = savedKey;
+        fetchModels();
+      }
+      renderHistory();
+      renderMessages();
+    };
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      
+      Object.keys(chats).forEach(id => {
+        const item = document.createElement('div');
+        item.className = `history-item ${id === currentChatId ? 'active' : ''}`;
+        
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'history-title';
+        titleSpan.innerText = chats[id].title || 'گفتگوی بدون عنوان';
+        titleSpan.onclick = () => { loadChat(id); toggleSidebar(); };
+        
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'chat-menu-btn';
+        menuBtn.innerText = '···';
+        menuBtn.onclick = (e) => {
+          e.stopPropagation();
+          toggleChatMenu(id);
+        };
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'chat-dropdown';
+        dropdown.id = `dropdown_${id}`;
+        
+        const renameBtn = document.createElement('button');
+        renameBtn.innerText = 'تغییر نام';
+        renameBtn.onclick = (e) => { e.stopPropagation(); renameChat(id); };
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerText = 'حذف';
+        deleteBtn.style.color = '#ef4444';
+        deleteBtn.onclick = (e) => { e.stopPropagation(); deleteChat(id); };
+
+        dropdown.appendChild(renameBtn);
+        dropdown.appendChild(deleteBtn);
+
+        item.appendChild(titleSpan);
+        item.appendChild(menuBtn);
+        item.appendChild(dropdown);
+        list.appendChild(item);
+      });
+    }
+
+    function toggleChatMenu(id) {
+      document.querySelectorAll('.chat-dropdown').forEach(d => {
+        if(d.id !== `dropdown_${id}`) d.classList.remove('show');
+      });
+      const dropdown = document.getElementById(`dropdown_${id}`);
+      dropdown.classList.toggle('show');
+    }
+
+    window.onclick = () => {
+      document.querySelectorAll('.chat-dropdown').forEach(d => d.classList.remove('show'));
+    };
+
+    function renameChat(id) {
+      const newTitle = prompt('نام جدید گفتگو را وارد کنید:', chats[id].title);
+      if (newTitle && newTitle.trim()) {
+        chats[id].title = newTitle.trim();
+        saveChats();
+        renderHistory();
+      }
+    }
+
+    function deleteChat(id) {
+      if (confirm('آیا از حذف این گفتگو مطمئن هستید؟')) {
+        delete chats[id];
+        saveChats();
+        if (currentChatId === id) {
+          currentChatId = null;
+        }
+        renderHistory();
+        renderMessages();
+      }
+    }
+
+    function startNewChat() {
+      currentChatId = null;
+      toggleSidebar();
+      renderHistory();
+      renderMessages();
+    }
+
+    function loadChat(id) {
+      currentChatId = id;
+      renderHistory();
+      renderMessages();
+    }
+
+    function saveChats() {
+      localStorage.setItem('ai_chats', JSON.stringify(chats));
+    }
+
+    function renderMessages() {
+      const box = document.getElementById('chat-box');
+      box.innerHTML = '';
+      
+      if (!currentChatId || !chats[currentChatId] || chats[currentChatId].messages.length === 0) {
+        const welcome = document.createElement('div');
+        welcome.id = 'welcomeScreen';
+        welcome.className = 'welcome-screen';
+        welcome.innerText = 'خوش آمدید';
+        box.appendChild(welcome);
+        return;
+      }
+
+      chats[currentChatId].messages.forEach(m => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `msg ${m.role}`;
+        msgDiv.innerHTML = m.role === 'ai' ? marked.parse(m.text) : m.text;
+        box.appendChild(msgDiv);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function handleInputText() {
+      const input = document.getElementById('userInput');
+      const sendBtn = document.getElementById('sendBtn');
+      if (input.value.trim().length > 0 || activeFile) {
+        sendBtn.classList.add('active');
+      } else {
+        sendBtn.classList.remove('active');
+      }
+    }
+
+    async function fetchModels() {
+      const key = document.getElementById('apiKey').value.trim();
+      if (!key) return;
+      localStorage.setItem('gemini_api_key', key);
+
+      const select = document.getElementById('modelSelect');
+      select.innerHTML = '<option value="">اسکن...</option>';
+
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+        const data = await res.json();
+        
+        if (data.models) {
+          select.innerHTML = '';
+          const generateModels = data.models.filter(m => m.supportedGenerationMethods?.includes('generateContent'));
+          
+          generateModels.forEach(m => {
+            const cleanName = m.name.replace('models/', '');
+            const option = document.createElement('option');
+            option.value = cleanName;
+            option.innerText = m.displayName || cleanName;
+            if (cleanName.includes('3.5-flash') || cleanName.includes('3.8-flash')) option.selected = true;
+            select.appendChild(option);
+          });
+        }
+      } catch (err) {
+        select.innerHTML = '<option value="">خطا در اسکن</option>';
+      }
+    }
+
+    function handleFile(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        activeFile = {
+          inlineData: {
+            mimeType: file.type || 'application/octet-stream',
+            data: e.target.result.split(',')[1]
+          }
+        };
+        document.getElementById('fileName').innerText = `📎 ${file.name}`;
+        document.getElementById('previewArea').style.display = 'flex';
+        handleInputText();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearFile() {
+      activeFile = null;
+      document.getElementById('fileInput').value = '';
+      document.getElementById('previewArea').style.display = 'none';
+      handleInputText();
+    }
+
+    function checkEnter(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMsg();
+      }
+    }
+
+    async function sendMsg() {
+      const key = document.getElementById('apiKey').value.trim();
+      const model = document.getElementById('modelSelect').value;
+      const input = document.getElementById('userInput');
+      const box = document.getElementById('chat-box');
+
+      if (!key) return alert('لطفاً ابتدا API Key را وارد کنید.');
+      if (!input.value.trim() && !activeFile) return;
+
+      const userText = input.value.trim();
+
+      if (!currentChatId || !chats[currentChatId]) {
+        currentChatId = 'chat_' + Date.now();
+        chats[currentChatId] = { 
+          title: userText ? userText.substring(0, 20) + '...' : 'گفتگوی جدید', 
+          messages: [] 
+        };
+      }
+      
+      chats[currentChatId].messages.push({ role: 'user', text: userText + (activeFile ? ' [فایل پیوست شد]' : '') });
+      
+      saveChats();
+      renderHistory();
+      renderMessages();
+
+      const apiContents = chats[currentChatId].messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }]
+      }));
+
+      if (activeFile) {
+        apiContents[apiContents.length - 1].parts.push(activeFile);
+      }
+
+      input.value = '';
+      clearFile();
+      handleInputText();
+
+      const aiMsgDiv = document.createElement('div');
+      aiMsgDiv.className = 'msg ai';
+      aiMsgDiv.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+      box.appendChild(aiMsgDiv);
+      box.scrollTop = box.scrollHeight;
+
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            contents: apiContents,
+            tools: [{ googleSearch: {} }] // فعال‌سازی سرچ زنده گوگل!
+          })
+        });
+        const data = await res.json();
+        
+        if (data.candidates && data.candidates[0].content) {
+          const replyText = data.candidates[0].content.parts[0].text;
+          chats[currentChatId].messages.push({ role: 'ai', text: replyText });
+        } else {
+          chats[currentChatId].messages.push({ role: 'ai', text: 'خطا: ' + (data.error?.message || 'پاسخی دریافت نشد.') });
+        }
+      } catch (err) {
+        chats[currentChatId].messages.push({ role: 'ai', text: 'خطا در ارتباط با API!' });
+      }
+
+      saveChats();
+      renderMessages();
+    }
+  </script>
+</body>
+</html>
