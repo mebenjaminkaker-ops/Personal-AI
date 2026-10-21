@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src https: http://localhost:* http://127.0.0.1:*; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#000000">
+<title>Personal AI Studio</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#000;--panel:#0d0d0d;--user:#d97706;--blue:#3b82f6;--text:#fff;--mute:#8a8a8a;--bd:#262626;--err:#ef4444}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:Vazirmatn,Tahoma,system-ui,sans-serif}
+body{display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-inset-top)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+input,select,textarea{font:inherit;background:#141414;color:#fff;border:1px solid var(--bd);border-radius:8px;padding:9px 10px;font-size:14px;width:100%}
+header{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--bd)}
+.ib{background:none;border:0;font-size:20px;padding:4px 8px;border-radius:8px;line-height:1}
+.title{font-weight:700;font-size:14px}
+.chip{flex:1;text-align:left;direction:ltr;font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:0}
+#chat{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px;position:relative}
+.empty{margin:auto;text-align:center;color:#555;font-size:15px;line-height:2;pointer-events:none}
+.empty b{display:block;font-size:26px;font-weight:300;color:#777}
+.msg{max-width:90%;padding:11px 15px;border-radius:14px;font-size:14px;line-height:1.7;word-break:break-word}
+.user{align-self:flex-start;background:var(--user);border-bottom-right-radius:3px;white-space:pre-wrap}
+.ai{align-self:flex-end;border:1px solid var(--blue);box-shadow:0 0 10px rgba(59,130,246,.45),0 0 20px rgba(59,130,246,.15);border-bottom-left-radius:3px}
+.msg.err{align-self:center;border:1px solid var(--err);color:#fca5a5;box-shadow:none;font-size:13px}
+.msg p+p,.msg ul,.msg ol,.msg pre,.msg blockquote{margin-top:8px}
+.msg ul,.msg ol{padding-inline-start:22px}
+.msg h4{font-size:15px;margin-top:8px}
+.msg blockquote{border-inline-start:3px solid var(--blue);padding-inline-start:10px;color:#cbd5e1}
+.msg a{color:#93c5fd}
+.msg pre{direction:ltr;text-align:left;background:#050505;border:1px solid var(--bd);border-radius:8px;padding:10px;overflow-x:auto}
+.msg code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#111;padding:1px 4px;border-radius:4px}
+.msg pre code{background:none;padding:0}
+.file{display:block;font-size:12px;opacity:.85;margin-top:6px}
+.dots{display:flex;gap:4px;padding:4px 6px}
+.dots i{width:6px;height:6px;background:var(--blue);border-radius:50%;animation:b 1.4s infinite ease-in-out both}
+.dots i:nth-child(1){animation-delay:-.32s}.dots i:nth-child(2){animation-delay:-.16s}
+@keyframes b{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.dots i{animation:none}#side{transition:none!important}}
+#prev{display:none;align-items:center;justify-content:space-between;padding:6px 14px;background:#0a0a0a;border-top:1px solid var(--bd);font-size:12px}
+.bar{display:flex;align-items:flex-end;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--bd)}
+.plus{font-size:26px;line-height:1;padding:0 4px 6px;cursor:pointer}
+.box{flex:1;display:flex;align-items:flex-end;gap:6px;border:1px solid #333;border-radius:22px;padding:6px 6px 6px 14px}
+.box textarea{background:none;border:0;resize:none;height:28px;max-height:120px;padding:4px 0;outline:0}
+#send{width:34px;height:34px;border-radius:50%;border:1px solid var(--bd);background:#161616;color:#555;font-size:17px;font-weight:700;flex-shrink:0}
+#send.on{background:#fff;color:#000;border-color:#fff}
+#side{position:fixed;inset:0 0 0 auto;width:min(300px,85vw);background:#080808;border-left:1px solid var(--bd);z-index:100;transform:translateX(105%);transition:transform .25s;display:flex;flex-direction:column;padding:16px}
+#side.open{transform:none}
+#shade{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:90;display:none}
+#shade.show{display:block}
+.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-weight:700}
+.new{width:100%;padding:12px;background:#1f1f1f;border:1px solid var(--bd);border-radius:8px;font-weight:700;margin-bottom:12px}
+#hist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.hi{position:relative;display:flex;align-items:center;gap:4px;background:#121212;border:1px solid transparent;border-radius:8px;font-size:13px}
+.hi.act{border-color:var(--user)}
+.hi .t{flex:1;text-align:right;background:none;border:0;padding:10px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hi .m{background:none;border:0;color:#aaa;padding:6px 10px}
+.hi .dd{position:absolute;left:8px;top:100%;z-index:110;background:#18181b;border:1px solid var(--bd);border-radius:6px;display:none;flex-direction:column}
+.hi .dd.show{display:flex}
+.hi .dd button{background:none;border:0;padding:9px 16px;font-size:12px;text-align:right;white-space:nowrap}
+#sheet{position:fixed;inset:0;z-index:120;display:none;align-items:flex-end;background:rgba(0,0,0,.65)}
+#sheet.show{display:flex}
+.card{width:100%;max-height:90dvh;overflow-y:auto;background:var(--panel);border-top:1px solid var(--bd);border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.card label{font-size:12px;color:var(--mute);display:block;margin-bottom:5px}
+.inl{display:flex;gap:8px}
+.inl button{background:#1f1f1f;border:1px solid var(--bd);border-radius:8px;padding:0 12px;white-space:nowrap}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px}
+.chk input{width:auto}
+.note{font-size:11px;color:var(--mute);line-height:1.7}
+.go{background:#fff;color:#000;border:0;border-radius:10px;padding:12px;font-weight:700}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1f1f1f;border:1px solid var(--bd);padding:10px 16px;border-radius:10px;font-size:13px;z-index:200;display:none;max-width:90%}
+</style>
+</head>
+<body>
+<div id="shade" onclick="closeAll()"></div>
+<aside id="side" aria-label="گفتگوها">
+  <div class="row"><span>گفتگوهای اخیر</span><button class="ib" onclick="closeAll()" aria-label="بستن">✕</button></div>
+  <button class="new" onclick="newChat()">+ گفتگوی جدید</button>
+  <div id="hist"></div>
+</aside>
+
+<header>
+  <button class="ib" onclick="openSide()" aria-label="گفتگوها">☰</button>
+  <span class="title">Personal AI</span>
+  <button class="chip" id="chip" onclick="openSet()"></button>
+  <button class="ib" onclick="openSet()" aria-label="تنظیمات">⚙</button>
+</header>
+
+<main id="chat"></main>
+
+<div id="prev"><span id="fname"></span><button class="ib" style="color:var(--err);font-size:16px" onclick="clearFile()" aria-label="حذف فایل">✕</button></div>
+<div class="bar">
+  <label class="plus" title="پیوست فایل">+<input type="file" id="fin" hidden onchange="pickFile(this)"></label>
+  <div class="box">
+    <textarea id="inp" rows="1" placeholder="پیام خود را بنویسید" oninput="onInp()" onkeydown="onKey(event)"></textarea>
+    <button id="send" onclick="sendMsg()" aria-label="ارسال">↑</button>
+  </div>
+</div>
+
+<div id="sheet" onclick="if(event.target===this)closeSet()">
+  <div class="card" role="dialog" aria-label="تنظیمات">
+    <div class="row" style="margin:0"><span>تنظیمات</span><button class="ib" onclick="closeSet()" aria-label="بستن">✕</button></div>
+    <div><label for="sProv">ارائه‌دهنده</label><select id="sProv" onchange="onProv()"></select></div>
+    <div id="rBase"><label for="sBase">آدرس پایه (سازگار با OpenAI)</label><input id="sBase" dir="ltr" placeholder="https://example.com/v1" onchange="onBase()"></div>
+    <div><label for="sKey">API Key</label>
+      <div class="inl"><input id="sKey" type="password" dir="ltr" autocomplete="off" spellcheck="false" onchange="onKey2()"><button onclick="const k=$('sKey');k.type=k.type==='password'?'text':'password'">نمایش</button></div></div>
+    <div><label for="sModel">مدل</label>
+      <div class="inl"><select id="sModel" onchange="onModel()"></select><button onclick="scan()">اسکن</button></div>
+      <input id="sMan" dir="ltr" placeholder="نام مدل را وارد کنید" style="margin-top:8px;display:none" onchange="onModel()"></div>
+    <div><label for="sSys">دستور سیستمی (اختیاری)</label><textarea id="sSys" rows="2" style="resize:vertical" onchange="saveCfg()"></textarea></div>
+    <label class="chk" id="rSearch"><input type="checkbox" id="sSearch" onchange="saveCfg()">جستجوی زنده گوگل (فقط Gemini)</label>
+    <label class="chk"><input type="checkbox" id="sRem" onchange="saveCfg();saveKeys()">ذخیره کلید روی این دستگاه</label>
+    <p class="note">کلید به‌صورت پیش‌فرض فقط تا بستن تب نگه داشته می‌شود و فقط به سرور همان ارائه‌دهنده ارسال می‌شود. روی دستگاه مشترک گزینه‌ی ذخیره را روشن نکنید.</p>
+    <button class="go" onclick="closeSet()">تمام</button>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P={
+  gemini:{n:'Google Gemini',t:'g',u:'https://generativelanguage.googleapis.com/v1beta'},
+  openai:{n:'OpenAI',t:'o',u:'https://api.openai.com/v1'},
+  anthropic:{n:'Anthropic Claude',t:'a',u:'https://api.anthropic.com/v1'},
+  groq:{n:'Groq',t:'o',u:'https://api.groq.com/openai/v1'},
+  openrouter:{n:'OpenRouter',t:'o',u:'https://openrouter.ai/api/v1'},
+  mistral:{n:'Mistral',t:'o',u:'https://api.mistral.ai/v1'},
+  deepseek:{n:'DeepSeek',t:'o',u:'https://api.deepseek.com/v1'},
+  cerebras:{n:'Cerebras',t:'o',u:'https://api.cerebras.ai/v1'},
+  xai:{n:'xAI Grok',t:'o',u:'https://api.x.ai/v1'},
+  custom:{n:'سفارشی (سازگار با OpenAI)',t:'o',u:''}
+};
+const jget=(s,k,d)=>{try{return JSON.parse(s.getItem(k))||d}catch{return d}};
+let cfg=Object.assign({prov:'gemini',m:{},base:'',sys:'',search:true,remember:false},jget(localStorage,'pai_cfg',{}));
+let keys=jget(localStorage,'pai_keys',null)||jget(sessionStorage,'pai_keys',{});
+let chats=jget(localStorage,'ai_chats',{}), cur=null, file=null, busy=false, ctl=null, models={};
+// انتقال کلید قدیمی Gemini
+try{const o=localStorage.getItem('gemini_api_key');if(o){keys.gemini=keys.gemini||o;localStorage.removeItem('gemini_api_key');cfg.remember=true;saveKeys()}}catch{}
+
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3500)}
+function saveCfg(){cfg.sys=$('sSys').value;cfg.search=$('sSearch').checked;cfg.remember=$('sRem').checked;try{localStorage.setItem('pai_cfg',JSON.stringify(cfg))}catch{}}
+function saveKeys(){try{const s=JSON.stringify(keys);sessionStorage.setItem('pai_keys',s);cfg.remember?localStorage.setItem('pai_keys',s):localStorage.removeItem('pai_keys')}catch{}}
+function saveChats(){try{localStorage.setItem('ai_chats',JSON.stringify(chats))}catch{toast('حافظه‌ی مرورگر پر است؛ گفتگوهای قدیمی را حذف کنید.')}}
+
+/* ---------- Markdown امن (ابتدا escape، بدون وابستگی خارجی) ---------- */
+function inl(t){return t.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<i>$2</i>').replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')}
+function md(src){
+  return src.split('```').map((p,i)=>{
+    if(i%2){const n=p.indexOf('\n');return '<pre><code>'+esc(n<0?p:p.slice(n+1))+'</code></pre>'}
+    let out='',list='';const close=()=>{if(list){out+='</'+list+'>';list=''}};
+    esc(p).split('\n').forEach(l=>{
+      const ul=l.match(/^\s*[-*•]\s+(.*)/),ol=l.match(/^\s*\d+[.)]\s+(.*)/),h=l.match(/^#{1,4}\s+(.*)/),q=l.match(/^&gt;\s?(.*)/);
+      if(ul||ol){const t=ul?'ul':'ol';if(list!==t){close();out+='<'+t+'>';list=t}out+='<li>'+inl((ul||ol)[1])+'</li>'}
+      else{close();if(h)out+='<h4>'+inl(h[1])+'</h4>';else if(q)out+='<blockquote>'+inl(q[1])+'</blockquote>';else if(l.trim())out+='<p>'+inl(l)+'</p>'}
+    });close();return out}).join('');
+}
+
+/* ---------- رابط ---------- */
+function openSide(){$('side').classList.add('open');$('shade').classList.add('show')}
+function closeAll(){$('side').classList.remove('open');$('shade').classList.remove('show')}
+function newChat(){cur=null;closeAll();renderHist();renderMsgs()}
+function renderHist(){
+  const l=$('hist');l.innerHTML='';
+  Object.keys(chats).reverse().forEach(id=>{
+    const it=document.createElement('div');it.className='hi'+(id===cur?' act':'');
+    const t=document.createElement('button');t.className='t';t.textContent=chats[id].title||'گفتگوی بدون عنوان';
+    t.onclick=()=>{cur=id;closeAll();renderHist();renderMsgs()};
+    const m=document.createElement('button');m.className='m';m.textContent='···';m.setAttribute('aria-label','گزینه‌ها');
+    const dd=document.createElement('div');dd.className='dd';
+    const r=document.createElement('button');r.textContent='تغییر نام';
+    r.onclick=e=>{e.stopPropagation();const n=prompt('نام جدید گفتگو:',chats[id].title);if(n&&n.trim()){chats[id].title=n.trim();saveChats();renderHist()}};
+    const d=document.createElement('button');d.textContent='حذف';d.style.color='#ef4444';
+    d.onclick=e=>{e.stopPropagation();if(confirm('این گفتگو حذف شود؟')){delete chats[id];if(cur===id)cur=null;saveChats();renderHist();renderMsgs()}};
+    m.onclick=e=>{e.stopPropagation();document.querySelectorAll('.dd.show').forEach(x=>x!==dd&&x.classList.remove('show'));dd.classList.toggle('show')};
+    dd.append(r,d);it.append(t,m,dd);l.append(it);
+  });
+}
+document.addEventListener('click',()=>document.querySelectorAll('.dd.show').forEach(x=>x.classList.remove('show')));
+function bubble(role,html){const d=document.createElement('div');d.className='msg '+role;d.innerHTML=html;$('chat').append(d);return d}
+function userHtml(m){return esc(m.text)+(m.file?'<span class="file">📎 '+esc(m.file)+'</span>':'')}
+function renderMsgs(){
+  const box=$('chat');box.innerHTML='';
+  const ms=cur&&chats[cur]?chats[cur].messages:[];
+  if(!ms.length){box.innerHTML='<div class="empty"><b>خوش آمدید</b>برای شروع، از ⚙ ارائه‌دهنده و API Key را انتخاب کنید.</div>';return}
+  ms.forEach(m=>bubble(m.role==='user'?'user':'ai',m.role==='user'?userHtml(m):md(m.text)));
+  box.scrollTop=box.scrollHeight;
+}
+function onInp(){const i=$('inp');i.style.height='28px';i.style.height=Math.min(i.scrollHeight,120)+'px';$('send').classList.toggle('on',busy||!!i.value.trim()||!!file)}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey&&!matchMedia('(pointer:coarse)').matches){e.preventDefault();sendMsg()}}
+function setBusy(b){busy=b;$('send').textContent=b?'■':'↑';onInp()}
+
+/* ---------- فایل ---------- */
+function pickFile(el){
+  const f=el.files[0];if(!f)return;
+  if(f.size>15*1024*1024){toast('حجم فایل نباید بیشتر از ۱۵ مگابایت باشد.');el.value='';return}
+  const r=new FileReader();
+  r.onload=e=>{file={name:f.name,mime:f.type||'application/octet-stream',data:String(e.target.result).split(',')[1]};$('fname').textContent='📎 '+f.name;$('prev').style.display='flex';onInp()};
+  r.onerror=()=>toast('خواندن فایل ناموفق بود.');
+  r.readAsDataURL(f);
+}
+function clearFile(){file=null;$('fin').value='';$('prev').style.display='none';onInp()}
+const dec=b=>new TextDecoder().decode(Uint8Array.from(atob(b),c=>c.charCodeAt(0)));
+
+/* ---------- تنظیمات و مدل‌ها ---------- */
+function base(){return cfg.prov==='custom'?cfg.base.trim().replace(/\/+$/,''):P[cfg.prov].u}
+function okBase(u){return /^https:\/\//.test(u)||/^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(u)}
+function hdrs(){
+  const k=keys[cfg.prov]||'',t=P[cfg.prov].t,h={'Content-Type':'application/json'};
+  if(t==='g')h['x-goog-api-key']=k;
+  else if(t==='a'){h['x-api-key']=k;h['anthropic-version']='2023-06-01';h['anthropic-dangerous-direct-browser-access']='true'}
+  else h['Authorization']='Bearer '+k;
+  return h;
+}
+function chipText(){const m=cfg.m[cfg.prov];return P[cfg.prov].n+(m?' · '+m:'')}
+function fillSet(){
+  const s=$('sProv');if(!s.options.length)Object.keys(P).forEach(k=>s.add(new Option(P[k].n,k)));
+  s.value=cfg.prov;$('sKey').value=keys[cfg.prov]||'';$('sBase').value=cfg.base;$('sSys').value=cfg.sys;
+  $('sSearch').checked=cfg.search;$('sRem').checked=cfg.remember;
+  $('rBase').style.display=cfg.prov==='custom'?'':'none';$('rSearch').style.display=cfg.prov==='gemini'?'':'none';
+  fillModels();$('chip').textContent=chipText();
+}
+function fillModels(){
+  const s=$('sModel'),list=models[cfg.prov]||[],cm=cfg.m[cfg.prov];s.innerHTML='';
+  const all=list.slice();if(cm&&!all.includes(cm))all.unshift(cm);
+  all.forEach(m=>s.add(new Option(m,m)));s.add(new Option('✎ وارد کردن دستی…','__man'));
+  s.value=cm||(all[0]||'__man');
+  const man=s.value==='__man';$('sMan').style.display=man?'':'none';
+  if(!man&&!cm&&all[0])cfg.m[cfg.prov]=all[0];
+}
+function openSet(){closeAll();fillSet();$('sheet').classList.add('show')}
+function closeSet(){saveCfg();$('sheet').classList.remove('show');$('chip').textContent=chipText()}
+function onProv(){cfg.prov=$('sProv').value;saveCfg();fillSet();if(keys[cfg.prov]&&!models[cfg.prov])scan()}
+function onBase(){cfg.base=$('sBase').value.trim();saveCfg();if(keys.custom)scan()}
+function onKey2(){keys[cfg.prov]=$('sKey').value.trim();saveKeys();if(keys[cfg.prov])scan()}
+function onModel(){const v=$('sModel').value;if(v==='__man'){$('sMan').style.display='';const m=$('sMan').value.trim();if(m)cfg.m[cfg.prov]=m}else{$('sMan').style.display='none';cfg.m[cfg.prov]=v}saveCfg();$('chip').textContent=chipText()}
+async function scan(){
+  const k=keys[cfg.prov];if(!k){toast('ابتدا API Key را وارد کنید.');return}
+  const u=base();if(!okBase(u)){toast('آدرس پایه باید با https:// شروع شود.');return}
+  const t=P[cfg.prov].t;let url=u+'/models';if(t==='g')url+='?pageSize=1000';if(t==='a')url+='?limit=100';
+  $('sModel').innerHTML='<option>در حال اسکن…</option>';
+  try{
+    const r=await fetch(url,{headers:hdrs()});const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw Error(j.error?.message||j.message||('خطای '+r.status));
+    let ids=t==='g'?(j.models||[]).filter(m=>m.supportedGenerationMethods?.includes('generateContent')).map(m=>m.name.replace('models/','')):(j.data||[]).map(m=>m.id);
+    if(t==='o')ids=ids.filter(i=>!/embed|whisper|tts|dall|moderation|guard|rerank|transcribe|audio|image/i.test(i));
+    models[cfg.prov]=ids.sort();
+    if(!cfg.m[cfg.prov]||!ids.includes(cfg.m[cfg.prov]))cfg.m[cfg.prov]=ids.find(i=>/flash|sonnet|mini|small|8b/i.test(i))||ids[0]||'';
+    saveCfg();toast(ids.length+' مدل پیدا شد.');
+  }catch(e){toast('اسکن ناموفق: '+(e.message==='Failed to fetch'?'اتصال یا CORS؛ مدل را دستی وارد کنید.':e.message))}
+  fillModels();$('chip').textContent=chipText();
+}
+
+/* ---------- ارسال ---------- */
+function getHist(){const o=[];chats[cur].messages.forEach(m=>{const r=m.role==='user'?'user':'assistant',l=o[o.length-1];if(l&&l.r===r)l.t+='\n\n'+m.text;else o.push({r,t:m.text})});return o}
+function payload(h,f,model,stream){
+  const T=P[cfg.prov].t,last=h.length-1;let bin=null;
+  if(f){
+    if(T==='g')bin=f;
+    else if(f.mime.startsWith('image/')||(T==='a'&&f.mime==='application/pdf'))bin=f;
+    else if(/^text\/|json|xml|csv|javascript/.test(f.mime))h[last].t+='\n\n['+f.name+']\n'+dec(f.data);
+    else throw Error('این ارائه‌دهنده فقط تصویر و فایل متنی را می‌پذیرد.');
+  }
+  const sys=cfg.sys.trim();
+  if(T==='g'){
+    const b={contents:h.map((x,i)=>({role:x.r==='user'?'user':'model',parts:[{text:x.t}].concat(i===last&&bin?[{inlineData:{mimeType:bin.mime,data:bin.data}}]:[])}))};
+    if(sys)b.systemInstruction={parts:[{text:sys}]};
+    if(cfg.search)b.tools=[{googleSearch:{}}];
+    return {url:`${base()}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,body:b};
+  }
+  if(T==='a'){
+    const b={model,max_tokens:4096,stream:true,messages:h.map((x,i)=>({role:x.r,content:i===last&&bin?[{type:bin.mime==='application/pdf'?'document':'image',source:{type:'base64',media_type:bin.mime,data:bin.data}},{type:'text',text:x.t}]:x.t}))};
+    if(sys)b.system=sys;return {url:base()+'/messages',body:b};
+  }
+  const ms=h.map((x,i)=>({role:x.r,content:i===last&&bin?[{type:'text',text:x.t},{type:'image_url',image_url:{url:`data:${bin.mime};base64,${bin.data}`}}]:x.t}));
+  if(sys)ms.unshift({role:'system',content:sys});
+  return {url:base()+'/chat/completions',body:{model,messages:ms,stream:true}};
+}
+function piece(j){
+  const T=P[cfg.prov].t;
+  if(j.error)throw Error(j.error.message||JSON.stringify(j.error));
+  if(T==='g')return(j.candidates?.[0]?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('');
+  if(T==='a'){if(j.type==='error')throw Error(j.error?.message||'خطا');return j.type==='content_block_delta'?(j.delta?.text||''):''}
+  return j.choices?.[0]?.delta?.content||'';
+}
+async function readSSE(res,on){
+  const rd=res.body.getReader(),d=new TextDecoder();let b='';
+  for(;;){const{done,value}=await rd.read();if(done)break;b+=d.decode(value,{stream:true});const L=b.split('\n');b=L.pop();
+    for(const l of L)if(l.startsWith('data:')){const s=l.slice(5).trim();if(s&&s!=='[DONE]'){let j;try{j=JSON.parse(s)}catch{continue}on(j)}}}
+}
+async function sendMsg(){
+  if(busy){ctl&&ctl.abort();return}
+  const inp=$('inp'),text=inp.value.trim(),f=file;
+  if(!text&&!f)return;
+  const key=keys[cfg.prov],model=cfg.m[cfg.prov],u=base();
+  if(!key||!model){toast(!key?'ابتدا API Key را وارد کنید.':'یک مدل انتخاب کنید.');openSet();return}
+  if(!okBase(u)){toast('آدرس پایه نامعتبر است.');openSet();return}
+  if(!cur||!chats[cur]){cur='chat_'+Date.now();chats[cur]={title:(text||f.name).slice(0,30),messages:[]}}
+  const ch=chats[cur];ch.messages.push({role:'user',text:text||'(فایل پیوست شد)',file:f?f.name:''});
+  inp.value='';clearFile();saveChats();renderHist();renderMsgs();setBusy(true);
+  const out=bubble('ai','<div class="dots"><i></i><i></i><i></i></div>');$('chat').scrollTop=1e9;
+  let acc='',raf=0;ctl=new AbortController();
+  const paint=()=>{raf=0;out.innerHTML=md(acc);$('chat').scrollTop=1e9};
+  try{
+    const p=payload(getHist(),f,model);
+    const res=await fetch(p.url,{method:'POST',headers:hdrs(),body:JSON.stringify(p.body),signal:ctl.signal});
+    if(!res.ok){const j=await res.json().catch(()=>({}));throw Error(j.error?.message||j.message||('خطای '+res.status))}
+    await readSSE(res,j=>{acc+=piece(j);if(!raf)raf=requestAnimationFrame(paint)});
+    if(!acc.trim())throw Error('پاسخی دریافت نشد (ممکن است محتوا مسدود شده باشد).');
+    ch.messages.push({role:'ai',text:acc});
+  }catch(e){
+    if(e.name==='AbortError'&&acc.trim())ch.messages.push({role:'ai',text:acc});
+    else{
+      ch.messages.pop();inp.value=text;
+      const hint=e.message==='Failed to fetch'?'اتصال برقرار نشد؛ اینترنت، آدرس پایه یا CORS را بررسی کنید.':e.name==='AbortError'?'ارسال متوقف شد.':e.message+(cfg.prov==='gemini'&&cfg.search&&/tool|search/i.test(e.message)?' — جستجوی زنده را در تنظیمات خاموش کنید.':'');
+      if(!ch.messages.length){delete chats[cur];cur=null}
+      saveChats();renderHist();renderMsgs();setBusy(false);onInp();
+      bubble('err',esc(hint));return;
+    }
+  }
+  if(raf)cancelAnimationFrame(raf);
+  saveChats();renderMsgs();setBusy(false);
+}
+window.onload=()=>{renderHist();renderMsgs();$('chip').textContent=chipText();onInp();if(keys[cfg.prov]&&!cfg.m[cfg.prov])scan()};
+</script>
+</body>
+</html>
