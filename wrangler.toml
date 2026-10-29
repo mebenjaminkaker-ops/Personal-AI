@@ -1,3 +1,0 @@
-name = "meepno-ai-groq"
-main = "worker.js"
-compatibility_date = "2026-10-30"
